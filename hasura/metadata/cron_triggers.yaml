@@ -17,5 +17,5 @@
     tolerance_seconds: 21600
   headers:
     - name: x-webhook-secret
-      value_from_env: HASURA_EVENT_WEBHOOK_SECRET
+      value_from_env: EVENT_WEBHOOK_SECRET
   comment: "Drives workflow_triggers of type 'scheduled'"

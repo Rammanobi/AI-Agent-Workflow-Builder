@@ -36,8 +36,8 @@ credentials don't exist yet for this assignment. Concretely:
 | `NEXT_PUBLIC_NHOST_SUBDOMAIN`, `NEXT_PUBLIC_NHOST_REGION` | nhost project the browser auth/GraphQL client connects to |
 | `HASURA_GRAPHQL_ADMIN_SECRET` | server-only; lets API routes bypass row permissions for privileged reads/writes and role re-checks |
 | `HASURA_GRAPHQL_GRAPHQL_URL` | the Hasura GraphQL endpoint the admin client posts to |
-| `HASURA_ACTION_SECRET` | shared secret Hasura Actions send back; routes reject requests without it |
-| `HASURA_EVENT_WEBHOOK_SECRET` | shared secret for Event Triggers + cron trigger |
+| `ACTION_WEBHOOK_SECRET` | shared secret Hasura Actions send back; routes reject requests without it |
+| `EVENT_WEBHOOK_SECRET` | shared secret for Event Triggers + cron trigger |
 | `ACTION_BASE_URL` | this app's deployed URL, so Hasura metadata knows where to call |
 | `GROQ_API_KEY` | optional — enables real `llm_call` steps |
 | `SLACK_WEBHOOK_URL` | optional — enables real `notify` delivery |

@@ -10,7 +10,7 @@ import { hasuraAdminRequest } from "@/lib/hasura-admin";
 // line -- no Slack workspace/webhook exists for this assignment yet.
 
 function verifyWebhookSecret(req: NextRequest): boolean {
-  const expected = process.env.HASURA_EVENT_WEBHOOK_SECRET || "";
+  const expected = process.env.EVENT_WEBHOOK_SECRET || "";
   return req.headers.get("x-webhook-secret") === expected;
 }
 

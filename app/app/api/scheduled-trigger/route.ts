@@ -14,7 +14,7 @@ import { createStepRunsForWorkflow, executeFromStep, WorkflowStep } from "@/lib/
 // own `created_by` user is recorded as the run's triggered_by.
 
 function verifyWebhookSecret(req: NextRequest): boolean {
-  const expected = process.env.HASURA_EVENT_WEBHOOK_SECRET || "";
+  const expected = process.env.EVENT_WEBHOOK_SECRET || "";
   return req.headers.get("x-webhook-secret") === expected;
 }
 

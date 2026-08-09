@@ -18,7 +18,7 @@ actions:
       forward_client_headers: true
       headers:
         - name: x-webhook-secret
-          value_from_env: HASURA_ACTION_SECRET
+          value_from_env: ACTION_WEBHOOK_SECRET
       arguments:
         - name: workflow_id
           type: uuid!
@@ -36,7 +36,7 @@ actions:
       forward_client_headers: true
       headers:
         - name: x-webhook-secret
-          value_from_env: HASURA_ACTION_SECRET
+          value_from_env: ACTION_WEBHOOK_SECRET
       arguments:
         - name: step_run_id
           type: uuid!

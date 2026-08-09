@@ -21,7 +21,7 @@ import { executeFromStep } from "@/lib/workflow-executor";
 // ============================================================================
 
 function verifyWebhookSecret(req: NextRequest): boolean {
-  const expected = process.env.HASURA_ACTION_SECRET || "";
+  const expected = process.env.ACTION_WEBHOOK_SECRET || "";
   return req.headers.get("x-webhook-secret") === expected;
 }
 

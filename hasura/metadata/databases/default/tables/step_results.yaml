@@ -42,4 +42,4 @@ event_triggers:
     webhook: "{{ACTION_BASE_URL}}/api/db-event-webhook"
     headers:
       - name: x-webhook-secret
-        value_from_env: HASURA_EVENT_WEBHOOK_SECRET
+        value_from_env: EVENT_WEBHOOK_SECRET

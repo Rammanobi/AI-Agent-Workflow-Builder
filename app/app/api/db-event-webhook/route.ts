@@ -10,7 +10,7 @@ import { createStepRunsForWorkflow, executeFromStep, WorkflowStep } from "@/lib/
 // exactly like every other trigger path, via the shared executor.
 
 function verifyWebhookSecret(req: NextRequest): boolean {
-  const expected = process.env.HASURA_EVENT_WEBHOOK_SECRET || "";
+  const expected = process.env.EVENT_WEBHOOK_SECRET || "";
   return req.headers.get("x-webhook-secret") === expected;
 }
 
