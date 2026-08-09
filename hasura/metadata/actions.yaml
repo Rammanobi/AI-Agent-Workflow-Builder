@@ -6,6 +6,10 @@
 # therefore re-verifies the caller's org_id + role itself, querying
 # org_members with the admin secret. See the comment block at the top of
 # those two files for the full explanation ("Layer 2").
+#
+# Custom input/output types for these actions live in actions.graphql
+# (Hasura CLI metadata-v3 project format requires the GraphQL SDL file for
+# custom_types, not an inline custom_types: block in this yaml).
 actions:
   - name: triggerWorkflowRun
     definition:
@@ -46,15 +50,5 @@ custom_types:
   input_objects: []
   objects:
     - name: TriggerWorkflowRunOutput
-      fields:
-        - name: workflow_run_id
-          type: uuid!
-        - name: status
-          type: String!
     - name: ApproveStepOutput
-      fields:
-        - name: step_run_id
-          type: uuid!
-        - name: status
-          type: String!
   scalars: []
