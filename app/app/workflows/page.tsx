@@ -3,11 +3,12 @@
 import { useState } from "react";
 import Link from "next/link";
 import { useMutation, useQuery } from "@apollo/client";
-import { useAuthenticationStatus, useUserData } from "@nhost/react";
+import { useAuthenticationStatus, useUserData, useHasuraClaim, useUserDefaultRole } from "@nhost/react";
 import { useRouter } from "next/navigation";
 import { useEffect } from "react";
 import { CREATE_WORKFLOW, GET_ORG_WORKFLOWS } from "@/lib/graphql";
 import RunStatusBadge from "@/components/RunStatusBadge";
+import QuotaBar from "@/components/QuotaBar";
 
 export default function WorkflowsPage() {
   const { isAuthenticated, isLoading: authLoading } = useAuthenticationStatus();
@@ -22,11 +23,13 @@ export default function WorkflowsPage() {
   const { data, loading, error, refetch } = useQuery(GET_ORG_WORKFLOWS, { skip: !isAuthenticated });
   const [createWorkflow, { loading: creating }] = useMutation(CREATE_WORKFLOW);
 
-  // The current org is derived from the X-Hasura-Org-Id session variable that
-  // nhost attaches to this user's JWT (set via a custom claim at signup /
-  // org-invite time); it is not something the client chooses. For this
-  // scaffold we read it back off the user's active metadata claim.
-  const orgId = (user?.metadata as any)?.orgId ?? (user?.defaultRole ? undefined : undefined);
+  // The current org is derived from the x-hasura-org-id JWT claim, which
+  // nhost injects via a custom claim (see nhost auth config: [[auth.session
+  // .accessToken.customClaims]]) resolved off the auth.users -> org_members
+  // relationship -- it is not something the client chooses.
+  const orgId = useHasuraClaim("org-id");
+  const role = useUserDefaultRole();
+  const isViewer = role === "viewer";
 
   async function handleCreate(e: React.FormEvent) {
     e.preventDefault();
@@ -42,13 +45,16 @@ export default function WorkflowsPage() {
   return (
     <main style={{ maxWidth: 720, margin: "40px auto", fontFamily: "sans-serif" }}>
       <h1>Workflows</h1>
+      {orgId && <QuotaBar orgId={Array.isArray(orgId) ? orgId[0] : orgId} />}
 
-      <form onSubmit={handleCreate} style={{ display: "flex", gap: 8, marginBottom: 24 }}>
-        <input placeholder="New workflow name" value={name} onChange={(e) => setName(e.target.value)} required />
-        <button type="submit" disabled={creating}>
-          Create
-        </button>
-      </form>
+      {!isViewer && (
+        <form onSubmit={handleCreate} style={{ display: "flex", gap: 8, marginBottom: 24 }}>
+          <input placeholder="New workflow name" value={name} onChange={(e) => setName(e.target.value)} required />
+          <button type="submit" disabled={creating}>
+            Create
+          </button>
+        </form>
+      )}
 
       <ul style={{ listStyle: "none", padding: 0 }}>
         {data?.workflows?.map((wf: any) => (
