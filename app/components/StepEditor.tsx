@@ -153,6 +153,26 @@ export default function StepEditor({
             Value
             <input value={local.config.value ?? ""} onChange={(e) => updateConfig("value", e.target.value)} />
           </label>
+          <label style={{ display: "block", marginTop: 8 }}>
+            If matched, jump to step # (blank = continue to next step)
+            <input
+              type="number"
+              value={local.config.on_true_step_order ?? ""}
+              onChange={(e) => updateConfig("on_true_step_order", e.target.value === "" ? undefined : Number(e.target.value))}
+            />
+          </label>
+          <label style={{ display: "block", marginTop: 8 }}>
+            If not matched, jump to step # (blank = continue to next step)
+            <input
+              type="number"
+              value={local.config.on_false_step_order ?? ""}
+              onChange={(e) => updateConfig("on_false_step_order", e.target.value === "" ? undefined : Number(e.target.value))}
+            />
+          </label>
+          <p style={{ color: "#666", fontSize: 12 }}>
+            This actually changes which step runs next -- it is not just a recorded true/false, the run genuinely
+            branches to the step number you set here.
+          </p>
         </>
       )}
 

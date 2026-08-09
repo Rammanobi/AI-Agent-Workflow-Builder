@@ -154,8 +154,22 @@ async function executeNotify(
   return { notification_id: result.insert_notifications_one.id, payload };
 }
 
-/** conditional_branch step: evaluates previous step's output against config. Never fails the run. */
-function executeConditionalBranch(config: Record<string, any>, previousOutput: any): Record<string, any> {
+/**
+ * conditional_branch step: evaluates previous step's output against config
+ * and decides which step_order execution actually continues from next.
+ *
+ * config: { field, operator, value, on_true_step_order?, on_false_step_order? }
+ * - on_true_step_order / on_false_step_order are explicit workflow_steps.step_order
+ *   values to jump to. Omit either to fall through to the immediate next step
+ *   on that branch (normal sequential execution).
+ * This is what makes the branch actually change behavior instead of just
+ * recording a matched: true/false result that the run ignores.
+ */
+function executeConditionalBranch(
+  config: Record<string, any>,
+  previousOutput: any,
+  currentStepOrder: number
+): { output: Record<string, any>; nextStepOrder: number } {
   const { field, operator, value } = config;
   const actual = field ? getByPath(previousOutput, field) : previousOutput;
   let matched = false;
@@ -178,7 +192,9 @@ function executeConditionalBranch(config: Record<string, any>, previousOutput: a
     default:
       matched = Boolean(actual);
   }
-  return { matched, actual, operator, value };
+  const configuredTarget = matched ? config.on_true_step_order : config.on_false_step_order;
+  const nextStepOrder = typeof configuredTarget === "number" ? configuredTarget : currentStepOrder + 1;
+  return { output: { matched, actual, operator, value, branched_to_step_order: nextStepOrder }, nextStepOrder };
 }
 
 function getByPath(obj: any, path: string): any {
@@ -302,9 +318,22 @@ export async function executeFromStep(workflowRunId: string, fromStepOrder: numb
     .sort((a, b) => b.step_order - a.step_order)[0];
   if (priorCompleted) previousOutput = priorCompleted.output;
 
-  const orderedSteps = ctx.steps.filter((s) => s.step_order >= fromStepOrder).sort((a, b) => a.step_order - b.step_order);
+  const stepsByOrder = new Map(ctx.steps.map((s) => [s.step_order, s]));
+  const maxStepOrder = ctx.steps.reduce((max, s) => Math.max(max, s.step_order), fromStepOrder - 1);
 
-  for (const step of orderedSteps) {
+  // Index-based cursor rather than a for-of over a fixed array, because
+  // conditional_branch can jump the cursor to a non-adjacent step_order --
+  // sequential iteration can't express a jump/skip.
+  let cursor = fromStepOrder;
+  while (cursor <= maxStepOrder) {
+    const step = stepsByOrder.get(cursor);
+    if (!step) {
+      // No step defined at this order (e.g. a branch skipped past a gap) --
+      // just advance to the next order.
+      cursor += 1;
+      continue;
+    }
+
     const stepRun = ctx.stepRuns.find((sr) => sr.workflow_step_id === step.id);
     if (!stepRun) {
       throw new Error(`No step_run found for workflow_step ${step.id}; createStepRunsForWorkflow was not called`);
@@ -324,6 +353,14 @@ export async function executeFromStep(workflowRunId: string, fromStepOrder: numb
         return { status: "paused" };
       }
 
+      if (step.type === "conditional_branch") {
+        const { output, nextStepOrder } = executeConditionalBranch(step.config, previousOutput, step.step_order);
+        await updateStepRun(stepRun.id, { status: "completed", output, completed_at: new Date().toISOString() });
+        previousOutput = output;
+        cursor = nextStepOrder;
+        continue;
+      }
+
       let output: Record<string, any>;
       switch (step.type) {
         case "llm_call":
@@ -338,15 +375,13 @@ export async function executeFromStep(workflowRunId: string, fromStepOrder: numb
         case "notify":
           output = await executeNotify(step.config, stepRun.id, workflowRunId, ctx.orgId);
           break;
-        case "conditional_branch":
-          output = executeConditionalBranch(step.config, previousOutput);
-          break;
         default:
           throw new Error(`Unknown step type: ${step.type}`);
       }
 
       await updateStepRun(stepRun.id, { status: "completed", output, completed_at: new Date().toISOString() });
       previousOutput = output;
+      cursor += 1;
     } catch (err) {
       const message = err instanceof Error ? err.message : String(err);
       await updateStepRun(stepRun.id, { status: "failed", error: message, completed_at: new Date().toISOString() });
