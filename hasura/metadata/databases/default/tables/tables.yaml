@@ -1,3 +1,4 @@
+- "!include auth_users.yaml"
 - "!include organizations.yaml"
 - "!include org_members.yaml"
 - "!include workflows.yaml"

@@ -1,7 +1,5 @@
 import type { ReactNode } from "react";
-import { NhostProvider } from "@nhost/nextjs";
-import { NhostApolloProvider } from "@nhost/react-apollo";
-import { nhost } from "@/lib/nhost";
+import { Providers } from "./providers";
 
 export const metadata = {
   title: "AI Agent Workflow Builder",
@@ -12,9 +10,7 @@ export default function RootLayout({ children }: { children: ReactNode }) {
   return (
     <html lang="en">
       <body>
-        <NhostProvider nhost={nhost}>
-          <NhostApolloProvider nhost={nhost}>{children}</NhostApolloProvider>
-        </NhostProvider>
+        <Providers>{children}</Providers>
       </body>
     </html>
   );

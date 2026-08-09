@@ -1,0 +1,112 @@
+# auth.users is nhost's own managed table (columns/relationships to its other
+# auth.* tables are nhost defaults, left untouched here). We add exactly two
+# relationships to our own org_members table, which is what makes the JWT
+# custom claims in the nhost project config resolvable:
+#   [[auth.session.accessToken.customClaims]]
+#   key = "org-id"          -> value = "orgMembership.org_id"
+#   key = "default-role"    -> value = "orgMembership.role"
+#   key = "allowed-roles"   -> value = "orgMemberships[].role"
+# See WRITEUP.md for the full explanation of why this is required (nhost's
+# default JWT only carries the generic "user"/"me" roles; Hasura's own row
+# permissions for owner/editor/viewer only take effect once x-hasura-default-role
+# and x-hasura-org-id are actually populated per-user via these claims).
+table:
+  schema: auth
+  name: users
+configuration:
+  custom_root_fields:
+    select: users
+    select_by_pk: user
+    select_aggregate: usersAggregate
+    insert: insertUsers
+    insert_one: insertUser
+    update: updateUsers
+    update_by_pk: updateUser
+    delete: deleteUsers
+    delete_by_pk: deleteUser
+  custom_column_names:
+    active_mfa_type: activeMfaType
+    avatar_url: avatarUrl
+    created_at: createdAt
+    default_role: defaultRole
+    display_name: displayName
+    email_verified: emailVerified
+    is_anonymous: isAnonymous
+    last_seen: lastSeen
+    new_email: newEmail
+    otp_hash: otpHash
+    otp_hash_expires_at: otpHashExpiresAt
+    otp_method_last_used: otpMethodLastUsed
+    password_hash: passwordHash
+    phone_number: phoneNumber
+    phone_number_verified: phoneNumberVerified
+    ticket_expires_at: ticketExpiresAt
+    totp_secret: totpSecret
+    updated_at: updatedAt
+    webauthn_current_challenge: currentChallenge
+object_relationships:
+  - name: defaultRoleByRole
+    using:
+      foreign_key_constraint_on: default_role
+  # Added for this project: resolves a single org_members row for a user.
+  # Assumes one org per user -- see WRITEUP.md caveat on multi-org membership.
+  - name: orgMembership
+    using:
+      manual_configuration:
+        remote_table:
+          schema: public
+          name: org_members
+        column_mapping:
+          id: user_id
+array_relationships:
+  - name: oauth2AuthRequests
+    using:
+      foreign_key_constraint_on:
+        column: user_id
+        table:
+          schema: auth
+          name: oauth2_auth_requests
+  - name: oauth2RefreshTokens
+    using:
+      foreign_key_constraint_on:
+        column: user_id
+        table:
+          schema: auth
+          name: oauth2_refresh_tokens
+  # Added for this project: feeds the allowed-roles[] JWT custom claim.
+  - name: orgMemberships
+    using:
+      manual_configuration:
+        remote_table:
+          schema: public
+          name: org_members
+        column_mapping:
+          id: user_id
+  - name: refreshTokens
+    using:
+      foreign_key_constraint_on:
+        column: user_id
+        table:
+          schema: auth
+          name: refresh_tokens
+  - name: roles
+    using:
+      foreign_key_constraint_on:
+        column: user_id
+        table:
+          schema: auth
+          name: user_roles
+  - name: securityKeys
+    using:
+      foreign_key_constraint_on:
+        column: user_id
+        table:
+          schema: auth
+          name: user_security_keys
+  - name: userProviders
+    using:
+      foreign_key_constraint_on:
+        column: user_id
+        table:
+          schema: auth
+          name: user_providers
