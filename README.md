@@ -7,6 +7,11 @@ multi-org access control, quotas, and human-in-the-loop approval gates.
 Stack: **nhost** (Postgres + Hasura GraphQL Engine + Auth) + **Next.js 14** (App Router,
 TypeScript) frontend, deployed separately (e.g. Vercel).
 
+## Live Deployment
+
+- **App:** https://app-smoky-five-48.vercel.app
+- **Backend:** nhost (Postgres + Hasura), region `eu-central-1` (Frankfurt)
+
 ## What's stubbed, and why
 
 This repo was built with **no live nhost project and no Groq API key** — those
@@ -30,6 +35,13 @@ credentials don't exist yet for this assignment. Concretely:
   Hasura's admin GraphQL API.
 
 ## Env vars needed (see `app/.env.example`)
+
+> **Reserved prefixes:** nhost rejects any environment variable whose name
+> starts with `HASURA_`, `NHOST_`, `AUTH_`, `STORAGE_`, or `POSTGRES_` — those
+> prefixes are reserved for the platform's own injected config. That's why
+> the webhook secrets below are named `ACTION_WEBHOOK_SECRET` /
+> `EVENT_WEBHOOK_SECRET` rather than `HASURA_ACTION_SECRET` /
+> `HASURA_EVENT_WEBHOOK_SECRET`.
 
 | Var | Purpose |
 |---|---|
