@@ -66,7 +66,9 @@ credentials don't exist yet for this assignment. Concretely:
    ```
 3. Insert a row into `organizations`, then one into `org_members` linking your
    nhost auth user to it with `role = 'owner'` — there is no self-serve org
-   creation UI in this scaffold (out of scope for the assignment).
+   creation UI in this scaffold (out of scope for the assignment). **This
+   alone is not enough** — see "Known limitations" below for the additional
+   steps that actually get the role into the JWT.
 4. `cd app && npm install && cp .env.example .env.local` and fill in the
    values from steps 1–3.
 5. `npm run dev`, then visit `http://localhost:3000`, sign up/sign in, and
@@ -74,6 +76,29 @@ credentials don't exist yet for this assignment. Concretely:
 6. For Actions/Event Triggers/cron to reach your local app, tunnel it (e.g.
    `ngrok http 3000`) and set `ACTION_BASE_URL` to the tunnel URL, then
    `hasura metadata apply` again so the webhook URLs pick it up.
+
+## Known limitations
+
+- **No self-serve onboarding.** Adding a user to an org currently requires
+  running SQL by hand for each user:
+  ```sql
+  insert into org_members (org_id, user_id, role) values ('<org_id>', '<user_id>', 'owner');
+  update auth.users set default_role = 'owner' where id = '<user_id>';
+  insert into auth.user_roles (user_id, role) values ('<user_id>', 'owner');
+  ```
+  All three statements are required — inserting into `org_members` alone does
+  **not** put the role in the user's JWT. See `WRITEUP.md`'s "How org_id/role
+  actually get into the JWT" section for why. A production version of this
+  app would wrap all three in one Action (e.g. `inviteToOrg`).
+- **One org per user assumed.** The JWT's `org-id`/`default-role` custom
+  claims resolve off a single (`orgMembership`) relationship row. A user in
+  two orgs would get a non-deterministic org-id/role in their token — not
+  supported by this scaffold.
+- **JWT custom claims live only on the nhost project's own config** (nhost
+  Configuration Editor → `[auth.session.accessToken.customClaims]`), not in
+  this repo's `hasura/` metadata folder, since it's nhost-platform
+  configuration rather than a Hasura object. Recreating a deployment from
+  scratch requires setting this by hand — see `WRITEUP.md` for the exact TOML.
 
 ## Architecture at a glance
 

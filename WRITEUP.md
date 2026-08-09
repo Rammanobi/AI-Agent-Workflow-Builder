@@ -35,6 +35,60 @@ can define things** from **who can run/approve things**.
   set — it works identically whether the row was inserted through Hasura,
   the admin API, or a future migration script.
 
+## How org_id/role actually get into the JWT
+
+Everything in Layer 1 depends on `x-hasura-org-id` and `x-hasura-default-role`
+being correct in the caller's JWT — but nhost's default session for any signed-up
+user only carries the generic system roles `user`/`me`, with no notion of an
+organization at all. Getting the real values in requires three pieces working
+together, none of which is optional:
+
+1. **Two relationships on `auth.users`** (nhost's own managed table), added via
+   the Hasura API: an object relationship `orgMembership` and an array
+   relationship `orgMemberships`, both manually mapped to `public.org_members`
+   on `auth.users.id = org_members.user_id`. These exist purely so nhost's
+   claim-resolution can walk from "the signed-in user" to "their org row" —
+   see `hasura/metadata/databases/default/tables/auth_users.yaml` (kept as
+   reference documentation only; the live project tracks many more
+   nhost-managed `auth.*` tables than this repo's metadata folder represents,
+   so this file is intentionally not part of what `hasura metadata apply`
+   reapplies).
+2. **Custom JWT claims**, configured on the nhost project itself (Settings →
+   Configuration Editor, not a file in this repo, since it's nhost-platform
+   config rather than Hasura metadata):
+   ```toml
+   [auth.session.accessToken]
+   customClaims = [
+     { key = "org-id", value = "orgMembership.org_id" },
+     { key = "default-role", value = "orgMembership.role" },
+     { key = "allowed-roles", value = "orgMemberships[].role" },
+   ]
+   ```
+   These resolve at token-issuance time via the relationships above and land
+   in the JWT as `x-hasura-org-id` / `x-hasura-default-role` /
+   `x-hasura-allowed-roles` — the exact session variables Layer 1's row
+   permissions filter on.
+3. **Per-user role registration**, which is a separate mechanism from (2) and
+   easy to miss: `default-role`/`allowed-roles` are *reserved* Hasura claim
+   names, and nhost only honors them if the role also exists in
+   `auth.roles` (project-wide valid role list, seeded by adding
+   `owner`/`editor`/`viewer` to `[auth.user.roles].allowed` in the same
+   config) **and** the specific user has a matching row in `auth.user_roles`,
+   plus `auth.users.default_role` set to that role. Custom claims alone do
+   *not* override these — they're additive metadata, not a role-assignment
+   mechanism. In this project that third step is done by hand via SQL
+   (`update auth.users set default_role = ...`, `insert into
+   auth.user_roles ...`) whenever a user is added to `org_members`, since
+   there's no self-serve onboarding UI yet (see README's "Known limitations").
+
+One caveat worth flagging: `orgMembership` is an *object* relationship, so if
+a user is ever added to a second organization, which `org_members` row it
+resolves for `org-id`/`default-role` becomes whichever row Hasura happens to
+pick — not deterministic. This project's demo assumes one org per user, which
+holds for every seeded test account; supporting real multi-org membership
+would need an explicit "active org" selector that reissues the token, not a
+bigger customClaims path.
+
 ## The two permission layers, and how they differ
 
 **Layer 1 — Hasura row permissions** (`hasura/metadata/databases/default/tables/*.yaml`).
