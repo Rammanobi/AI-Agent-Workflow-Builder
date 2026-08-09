@@ -32,7 +32,7 @@ export default function TriggerEditor({
   }
 
   return (
-    <div style={{ border: "1px solid #ddd", borderRadius: 8, padding: 12 }}>
+    <div className="card">
       <label style={{ display: "block" }}>
         Trigger type
         <select value={local.type} onChange={(e) => update({ type: e.target.value as TriggerType, config: {} })}>

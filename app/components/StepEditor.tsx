@@ -40,7 +40,7 @@ export default function StepEditor({
   const restricted = local.type === "db_write" || local.type === "notify";
 
   return (
-    <div style={{ border: "1px solid #ddd", borderRadius: 8, padding: 12, marginBottom: 8 }}>
+    <div className="card">
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
         <strong>Step {local.step_order}</strong>
         <button onClick={onDelete} style={{ color: "crimson" }}>

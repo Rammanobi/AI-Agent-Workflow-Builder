@@ -41,7 +41,7 @@ export default function RunViewPage() {
 
       <ol style={{ marginTop: 24, padding: 0 }}>
         {stepRuns.map((sr: any) => (
-          <li key={sr.id} style={{ listStyle: "none", border: "1px solid #ddd", borderRadius: 8, padding: 12, marginBottom: 8 }}>
+          <li key={sr.id} className="card" style={{ listStyle: "none" }}>
             <div style={{ display: "flex", justifyContent: "space-between" }}>
               <strong>
                 Step {sr.step_order}: {sr.workflow_step.type}

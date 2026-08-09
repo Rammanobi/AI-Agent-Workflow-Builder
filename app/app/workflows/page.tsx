@@ -58,7 +58,7 @@ export default function WorkflowsPage() {
 
       <ul style={{ listStyle: "none", padding: 0 }}>
         {data?.workflows?.map((wf: any) => (
-          <li key={wf.id} style={{ border: "1px solid #ddd", borderRadius: 8, padding: 12, marginBottom: 8 }}>
+          <li key={wf.id} className="card" style={{ listStyle: "none" }}>
             <Link href={`/workflows/${wf.id}`} style={{ fontWeight: 600 }}>
               {wf.name}
             </Link>
