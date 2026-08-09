@@ -1,0 +1,40 @@
+# Layer 1: filter is org_id: { _eq: "X-Hasura-Org-Id" } directly (this table
+# denormalizes org_id for exactly this reason -- fast, simple row filtering
+# without a join). No insert/update/delete permissions are granted to any
+# user role: rows are only ever written by the trigger-workflow-run and
+# approve-step Action handlers using the admin secret (see Layer 2 in
+# app/app/api/trigger-workflow-run/route.ts and .../approve-step/route.ts).
+table:
+  schema: public
+  name: workflow_runs
+object_relationships:
+  - name: workflow
+    using:
+      foreign_key_constraint_on: workflow_id
+  - name: organization
+    using:
+      foreign_key_constraint_on: org_id
+array_relationships:
+  - name: step_runs
+    using:
+      foreign_key_constraint_on:
+        column: workflow_run_id
+        table:
+          schema: public
+          name: step_runs
+select_permissions:
+  - role: owner
+    permission:
+      columns: [id, workflow_id, org_id, status, triggered_by, started_at, completed_at]
+      filter:
+        org_id: { _eq: X-Hasura-Org-Id }
+  - role: editor
+    permission:
+      columns: [id, workflow_id, org_id, status, triggered_by, started_at, completed_at]
+      filter:
+        org_id: { _eq: X-Hasura-Org-Id }
+  - role: viewer
+    permission:
+      columns: [id, workflow_id, org_id, status, triggered_by, started_at, completed_at]
+      filter:
+        org_id: { _eq: X-Hasura-Org-Id }

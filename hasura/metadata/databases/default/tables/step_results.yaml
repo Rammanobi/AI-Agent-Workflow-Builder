@@ -1,0 +1,45 @@
+# Layer 1: reach through step_run -> workflow_run -> org_id. Read-only for
+# all roles; written exclusively by db_write steps in the shared executor
+# using the admin client.
+table:
+  schema: public
+  name: step_results
+object_relationships:
+  - name: step_run
+    using:
+      foreign_key_constraint_on: step_run_id
+select_permissions:
+  - role: owner
+    permission:
+      columns: [id, step_run_id, data, created_at]
+      filter:
+        step_run: { workflow_run: { org_id: { _eq: X-Hasura-Org-Id } } }
+  - role: editor
+    permission:
+      columns: [id, step_run_id, data, created_at]
+      filter:
+        step_run: { workflow_run: { org_id: { _eq: X-Hasura-Org-Id } } }
+  - role: viewer
+    permission:
+      columns: [id, step_run_id, data, created_at]
+      filter:
+        step_run: { workflow_run: { org_id: { _eq: X-Hasura-Org-Id } } }
+# Example "database event" trigger type: workflows with a `database_event`
+# trigger are meant to fire when a chosen table changes. step_results is used
+# here as the example watched table (a db_write step landing a row is a
+# natural "something changed" signal) -> Hasura calls db-event-webhook, which
+# looks up workflows whose trigger config names this table and starts a run.
+event_triggers:
+  - name: db_event_on_step_results_insert
+    definition:
+      enable_manual: false
+      insert:
+        columns: "*"
+    retry_conf:
+      num_retries: 1
+      interval_sec: 10
+      timeout_sec: 60
+    webhook: "{{ACTION_BASE_URL}}/api/db-event-webhook"
+    headers:
+      - name: x-webhook-secret
+        value_from_env: HASURA_EVENT_WEBHOOK_SECRET

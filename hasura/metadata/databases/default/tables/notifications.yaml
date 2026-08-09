@@ -1,0 +1,48 @@
+# Layer 1: filter is org_id: { _eq: "X-Hasura-Org-Id" } directly. Read-only
+# for all roles. Rows are inserted by the shared executor (admin client) when
+# a `notify` step runs; a Hasura Event Trigger on INSERT (see
+# hasura/metadata/databases/default/tables/notifications_event_triggers.yaml)
+# then calls app/app/api/notify-webhook/route.ts to actually deliver it.
+table:
+  schema: public
+  name: notifications
+object_relationships:
+  - name: step_run
+    using:
+      foreign_key_constraint_on: step_run_id
+  - name: workflow_run
+    using:
+      foreign_key_constraint_on: workflow_run_id
+  - name: organization
+    using:
+      foreign_key_constraint_on: org_id
+select_permissions:
+  - role: owner
+    permission:
+      columns: [id, step_run_id, workflow_run_id, org_id, payload, sent, created_at]
+      filter:
+        org_id: { _eq: X-Hasura-Org-Id }
+  - role: editor
+    permission:
+      columns: [id, step_run_id, workflow_run_id, org_id, payload, sent, created_at]
+      filter:
+        org_id: { _eq: X-Hasura-Org-Id }
+  - role: viewer
+    permission:
+      columns: [id, step_run_id, workflow_run_id, org_id, payload, sent, created_at]
+      filter:
+        org_id: { _eq: X-Hasura-Org-Id }
+event_triggers:
+  - name: notify_on_insert
+    definition:
+      enable_manual: false
+      insert:
+        columns: "*"
+    retry_conf:
+      num_retries: 1
+      interval_sec: 10
+      timeout_sec: 60
+    webhook: "{{ACTION_BASE_URL}}/api/notify-webhook"
+    headers:
+      - name: x-webhook-secret
+        value_from_env: HASURA_EVENT_WEBHOOK_SECRET

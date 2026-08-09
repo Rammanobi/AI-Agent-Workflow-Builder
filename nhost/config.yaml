@@ -1,0 +1,48 @@
+# nhost project config. This references the Hasura metadata + migrations
+# checked in under hasura/ -- once `nhost up` (or `nhost dev`) is run from a
+# real nhost project directory with this file, it will apply
+# hasura/migrations/*.sql and then hasura/metadata/* automatically.
+#
+# Requires env vars (see app/.env.example):
+#   NHOST_SUBDOMAIN, NHOST_REGION, HASURA_GRAPHQL_ADMIN_SECRET
+
+version: 3
+
+compose:
+  file: docker-compose.yaml
+  project_name: ai-workflow-builder
+
+hasura:
+  version: v2.36.0-ce
+  adminSecret: "{{ secrets.HASURA_GRAPHQL_ADMIN_SECRET }}"
+  webhookSecret: "{{ secrets.NHOST_WEBHOOK_SECRET }}"
+  jwtSecrets:
+    - type: HS256
+      key: "{{ secrets.HASURA_GRAPHQL_JWT_SECRET }}"
+
+postgres:
+  version: 14.6-20230406-1
+
+auth:
+  version: 0.24.0
+  redirections:
+    clientUrl: "{{ secrets.APP_URL }}"
+  signUp:
+    enabled: true
+  session:
+    accessToken:
+      expiresIn: 900
+    refreshToken:
+      expiresIn: 43200
+
+functions:
+  node:
+    version: 18
+
+# The graphql/actions handler base URL for triggerWorkflowRun / approveStep
+# and every webhook (event triggers, cron trigger) points at the Next.js app
+# deployment. Set this once the app/ directory is deployed (e.g. to Vercel).
+global:
+  environment:
+    - name: ACTION_BASE_URL
+      value: "{{ secrets.ACTION_BASE_URL }}"

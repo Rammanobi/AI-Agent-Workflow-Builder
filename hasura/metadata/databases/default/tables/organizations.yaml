@@ -1,0 +1,48 @@
+# Layer 1 (Hasura row permissions): every select/insert/update/delete filter
+# below scopes rows to `id: { _eq: "X-Hasura-Org-Id" }` (this table's PK IS the
+# org id). Even if a caller guesses another org's UUID, Hasura will not return
+# or touch rows outside their own org because the session variable, not the
+# query, decides the boundary.
+table:
+  schema: public
+  name: organizations
+select_permissions:
+  - role: owner
+    permission:
+      columns: [id, name, quota_limit, quota_used, created_at]
+      filter:
+        id: { _eq: X-Hasura-Org-Id }
+  - role: editor
+    permission:
+      columns: [id, name, quota_limit, quota_used, created_at]
+      filter:
+        id: { _eq: X-Hasura-Org-Id }
+  - role: viewer
+    permission:
+      columns: [id, name, quota_limit, quota_used, created_at]
+      filter:
+        id: { _eq: X-Hasura-Org-Id }
+update_permissions:
+  - role: owner
+    permission:
+      columns: [name]
+      filter:
+        id: { _eq: X-Hasura-Org-Id }
+      check: null
+# quota_used / quota_limit are only ever mutated server-side (admin secret)
+# from the trigger-workflow-run Action handler, never directly by a user role.
+array_relationships:
+  - name: members
+    using:
+      foreign_key_constraint_on:
+        column: org_id
+        table:
+          schema: public
+          name: org_members
+  - name: workflows
+    using:
+      foreign_key_constraint_on:
+        column: org_id
+        table:
+          schema: public
+          name: workflows

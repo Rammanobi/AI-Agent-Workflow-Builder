@@ -1,0 +1,22 @@
+# Example "scheduled" trigger type: fires every 5 minutes and hits
+# /api/scheduled-trigger, which looks up all workflows that have a
+# workflow_triggers row of type 'scheduled' whose cron config matches, and
+# starts a run for each via the same shared executor used everywhere else.
+# In production you'd add one cron_trigger per distinct schedule, or keep this
+# single 5-minute poller and let the route itself do the cron-matching
+# (which is what /api/scheduled-trigger/route.ts does, to keep this file
+# simple regardless of how many scheduled workflows exist).
+cron_triggers:
+  - name: poll_scheduled_workflow_triggers
+    webhook: "{{ACTION_BASE_URL}}/api/scheduled-trigger"
+    schedule: "*/5 * * * *"
+    include_in_metadata: true
+    payload: {}
+    retry_conf:
+      num_retries: 1
+      timeout_seconds: 60
+      tolerance_seconds: 21600
+    headers:
+      - name: x-webhook-secret
+        value_from_env: HASURA_EVENT_WEBHOOK_SECRET
+    comment: "Drives workflow_triggers of type 'scheduled'"

@@ -1,0 +1,22 @@
+# org_usage_this_month is a Postgres VIEW (see hasura/migrations/0010_org_usage_view.sql).
+# Hasura tracks views the same way as tables. Filtered by org_id like every
+# other table here -- the QuotaBar component queries this directly.
+table:
+  schema: public
+  name: org_usage_this_month
+select_permissions:
+  - role: owner
+    permission:
+      columns: [org_id, org_name, quota_limit, quota_used, runs_this_month]
+      filter:
+        org_id: { _eq: X-Hasura-Org-Id }
+  - role: editor
+    permission:
+      columns: [org_id, org_name, quota_limit, quota_used, runs_this_month]
+      filter:
+        org_id: { _eq: X-Hasura-Org-Id }
+  - role: viewer
+    permission:
+      columns: [org_id, org_name, quota_limit, quota_used, runs_this_month]
+      filter:
+        org_id: { _eq: X-Hasura-Org-Id }

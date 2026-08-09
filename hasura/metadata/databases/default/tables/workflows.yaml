@@ -1,0 +1,80 @@
+# Layer 1: filter is org_id: { _eq: "X-Hasura-Org-Id" } on every permission,
+# for every role. A viewer in org A can never see a workflow row from org B
+# even if they know its UUID, because Hasura injects this filter into the SQL
+# regardless of the WHERE clause the client sends.
+table:
+  schema: public
+  name: workflows
+object_relationships:
+  - name: organization
+    using:
+      foreign_key_constraint_on: org_id
+array_relationships:
+  - name: steps
+    using:
+      foreign_key_constraint_on:
+        column: workflow_id
+        table:
+          schema: public
+          name: workflow_steps
+  - name: triggers
+    using:
+      foreign_key_constraint_on:
+        column: workflow_id
+        table:
+          schema: public
+          name: workflow_triggers
+  - name: runs
+    using:
+      foreign_key_constraint_on:
+        column: workflow_id
+        table:
+          schema: public
+          name: workflow_runs
+select_permissions:
+  - role: owner
+    permission:
+      columns: [id, org_id, name, description, created_by, created_at, updated_at]
+      filter:
+        org_id: { _eq: X-Hasura-Org-Id }
+  - role: editor
+    permission:
+      columns: [id, org_id, name, description, created_by, created_at, updated_at]
+      filter:
+        org_id: { _eq: X-Hasura-Org-Id }
+  - role: viewer
+    permission:
+      columns: [id, org_id, name, description, created_by, created_at, updated_at]
+      filter:
+        org_id: { _eq: X-Hasura-Org-Id }
+insert_permissions:
+  - role: owner
+    permission:
+      columns: [org_id, name, description, created_by]
+      check:
+        org_id: { _eq: X-Hasura-Org-Id }
+  - role: editor
+    permission:
+      columns: [org_id, name, description, created_by]
+      check:
+        org_id: { _eq: X-Hasura-Org-Id }
+update_permissions:
+  - role: owner
+    permission:
+      columns: [name, description]
+      filter:
+        org_id: { _eq: X-Hasura-Org-Id }
+      check:
+        org_id: { _eq: X-Hasura-Org-Id }
+  - role: editor
+    permission:
+      columns: [name, description]
+      filter:
+        org_id: { _eq: X-Hasura-Org-Id }
+      check:
+        org_id: { _eq: X-Hasura-Org-Id }
+delete_permissions:
+  - role: owner
+    permission:
+      filter:
+        org_id: { _eq: X-Hasura-Org-Id }

@@ -1,0 +1,47 @@
+# Layer 1: every permission filters by org_id: { _eq: "X-Hasura-Org-Id" }.
+# This is the row-level backstop for org isolation described in WRITEUP.md.
+# Layer 2 (see app/app/api/*/route.ts) independently re-reads this same table
+# with the admin secret inside Action handlers, because Actions bypass these
+# permissions entirely and must not just trust the GraphQL layer.
+table:
+  schema: public
+  name: org_members
+object_relationships:
+  - name: organization
+    using:
+      foreign_key_constraint_on: org_id
+select_permissions:
+  - role: owner
+    permission:
+      columns: [id, org_id, user_id, role, created_at]
+      filter:
+        org_id: { _eq: X-Hasura-Org-Id }
+  - role: editor
+    permission:
+      columns: [id, org_id, user_id, role, created_at]
+      filter:
+        org_id: { _eq: X-Hasura-Org-Id }
+  - role: viewer
+    permission:
+      columns: [id, org_id, user_id, role, created_at]
+      filter:
+        org_id: { _eq: X-Hasura-Org-Id }
+insert_permissions:
+  - role: owner
+    permission:
+      columns: [org_id, user_id, role]
+      check:
+        org_id: { _eq: X-Hasura-Org-Id }
+update_permissions:
+  - role: owner
+    permission:
+      columns: [role]
+      filter:
+        org_id: { _eq: X-Hasura-Org-Id }
+      check:
+        org_id: { _eq: X-Hasura-Org-Id }
+delete_permissions:
+  - role: owner
+    permission:
+      filter:
+        org_id: { _eq: X-Hasura-Org-Id }

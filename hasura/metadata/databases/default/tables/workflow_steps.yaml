@@ -1,0 +1,68 @@
+# Layer 1: workflow_steps has no org_id column of its own, so the filter
+# reaches through the `workflow` object relationship:
+#   workflow: { org_id: { _eq: "X-Hasura-Org-Id" } }
+# This still fully isolates orgs — Hasura turns it into a SQL join/subquery
+# constrained by the session variable, so cross-org steps are invisible.
+#
+# Editors are additionally blocked at this layer from inserting/updating
+# db_write or notify steps (type: { _nin: [db_write, notify] }) -- this
+# mirrors the Postgres trigger in hasura/migrations/0011_enforcement_triggers.sql
+# which enforces the same rule as defense-in-depth at the DB layer.
+table:
+  schema: public
+  name: workflow_steps
+object_relationships:
+  - name: workflow
+    using:
+      foreign_key_constraint_on: workflow_id
+select_permissions:
+  - role: owner
+    permission:
+      columns: [id, workflow_id, step_order, type, config, created_by, created_at]
+      filter:
+        workflow: { org_id: { _eq: X-Hasura-Org-Id } }
+  - role: editor
+    permission:
+      columns: [id, workflow_id, step_order, type, config, created_by, created_at]
+      filter:
+        workflow: { org_id: { _eq: X-Hasura-Org-Id } }
+  - role: viewer
+    permission:
+      columns: [id, workflow_id, step_order, type, config, created_by, created_at]
+      filter:
+        workflow: { org_id: { _eq: X-Hasura-Org-Id } }
+insert_permissions:
+  - role: owner
+    permission:
+      columns: [workflow_id, step_order, type, config, created_by]
+      check:
+        workflow: { org_id: { _eq: X-Hasura-Org-Id } }
+  - role: editor
+    permission:
+      columns: [workflow_id, step_order, type, config, created_by]
+      check:
+        _and:
+          - workflow: { org_id: { _eq: X-Hasura-Org-Id } }
+          - type: { _nin: [db_write, notify] }
+update_permissions:
+  - role: owner
+    permission:
+      columns: [step_order, type, config]
+      filter:
+        workflow: { org_id: { _eq: X-Hasura-Org-Id } }
+      check:
+        workflow: { org_id: { _eq: X-Hasura-Org-Id } }
+  - role: editor
+    permission:
+      columns: [step_order, config]
+      filter:
+        workflow: { org_id: { _eq: X-Hasura-Org-Id } }
+      check:
+        _and:
+          - workflow: { org_id: { _eq: X-Hasura-Org-Id } }
+          - type: { _nin: [db_write, notify] }
+delete_permissions:
+  - role: owner
+    permission:
+      filter:
+        workflow: { org_id: { _eq: X-Hasura-Org-Id } }

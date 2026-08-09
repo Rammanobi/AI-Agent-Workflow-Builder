@@ -1,0 +1,60 @@
+# Hasura Actions bypass table row permissions entirely -- they hand the
+# request straight to the handler URL with forwarded session variables and a
+# webhook secret, but Hasura does NOT re-run the select/insert/update/delete
+# permission checks above on the handler's behalf. Each handler
+# (app/app/api/trigger-workflow-run/route.ts, app/app/api/approve-step/route.ts)
+# therefore re-verifies the caller's org_id + role itself, querying
+# org_members with the admin secret. See the comment block at the top of
+# those two files for the full explanation ("Layer 2").
+actions:
+  - name: triggerWorkflowRun
+    definition:
+      kind: synchronous
+      handler: "{{ACTION_BASE_URL}}/api/trigger-workflow-run"
+      forward_client_headers: true
+      headers:
+        - name: x-webhook-secret
+          value_from_env: HASURA_ACTION_SECRET
+      arguments:
+        - name: workflow_id
+          type: uuid!
+      output_type: TriggerWorkflowRunOutput
+    permissions:
+      - role: owner
+      - role: editor
+      # viewer is intentionally NOT granted permission to call this action --
+      # this is a first-line filter, but the handler re-checks role anyway.
+
+  - name: approveStep
+    definition:
+      kind: synchronous
+      handler: "{{ACTION_BASE_URL}}/api/approve-step"
+      forward_client_headers: true
+      headers:
+        - name: x-webhook-secret
+          value_from_env: HASURA_ACTION_SECRET
+      arguments:
+        - name: step_run_id
+          type: uuid!
+      output_type: ApproveStepOutput
+    permissions:
+      - role: owner
+      - role: editor
+
+custom_types:
+  enums: []
+  input_objects: []
+  objects:
+    - name: TriggerWorkflowRunOutput
+      fields:
+        - name: workflow_run_id
+          type: uuid!
+        - name: status
+          type: String!
+    - name: ApproveStepOutput
+      fields:
+        - name: step_run_id
+          type: uuid!
+        - name: status
+          type: String!
+  scalars: []

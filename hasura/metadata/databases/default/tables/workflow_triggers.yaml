@@ -1,0 +1,62 @@
+# Layer 1: same reach-through-relationship pattern as workflow_steps.yaml —
+# workflow: { org_id: { _eq: "X-Hasura-Org-Id" } } — plus editors are blocked
+# from creating/editing `webhook` triggers (owner-only), matching the
+# Postgres trigger trg_enforce_owner_only_trigger_types.
+table:
+  schema: public
+  name: workflow_triggers
+object_relationships:
+  - name: workflow
+    using:
+      foreign_key_constraint_on: workflow_id
+select_permissions:
+  - role: owner
+    permission:
+      columns: [id, workflow_id, type, config, created_by, created_at]
+      filter:
+        workflow: { org_id: { _eq: X-Hasura-Org-Id } }
+  - role: editor
+    permission:
+      columns: [id, workflow_id, type, config, created_by, created_at]
+      filter:
+        workflow: { org_id: { _eq: X-Hasura-Org-Id } }
+  - role: viewer
+    permission:
+      columns: [id, workflow_id, type, config, created_by, created_at]
+      filter:
+        workflow: { org_id: { _eq: X-Hasura-Org-Id } }
+insert_permissions:
+  - role: owner
+    permission:
+      columns: [workflow_id, type, config, created_by]
+      check:
+        workflow: { org_id: { _eq: X-Hasura-Org-Id } }
+  - role: editor
+    permission:
+      columns: [workflow_id, type, config, created_by]
+      check:
+        _and:
+          - workflow: { org_id: { _eq: X-Hasura-Org-Id } }
+          - type: { _neq: webhook }
+update_permissions:
+  - role: owner
+    permission:
+      columns: [type, config]
+      filter:
+        workflow: { org_id: { _eq: X-Hasura-Org-Id } }
+      check:
+        workflow: { org_id: { _eq: X-Hasura-Org-Id } }
+  - role: editor
+    permission:
+      columns: [config]
+      filter:
+        workflow: { org_id: { _eq: X-Hasura-Org-Id } }
+      check:
+        _and:
+          - workflow: { org_id: { _eq: X-Hasura-Org-Id } }
+          - type: { _neq: webhook }
+delete_permissions:
+  - role: owner
+    permission:
+      filter:
+        workflow: { org_id: { _eq: X-Hasura-Org-Id } }
