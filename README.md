@@ -84,12 +84,14 @@ credentials don't exist yet for this assignment. Concretely:
   ```sql
   insert into org_members (org_id, user_id, role) values ('<org_id>', '<user_id>', 'owner');
   update auth.users set default_role = 'owner' where id = '<user_id>';
-  insert into auth.user_roles (user_id, role) values ('<user_id>', 'owner');
   ```
-  All three statements are required — inserting into `org_members` alone does
-  **not** put the role in the user's JWT. See `WRITEUP.md`'s "How org_id/role
+  Both statements are required — inserting into `org_members` alone does
+  **not** put the role in the user's JWT. (nhost already auto-grants every
+  configured allowed role — `user`/`me`/`owner`/`editor`/`viewer` — to every
+  signup in `auth.user_roles`, so no insert is needed there; only
+  `default_role` needs setting explicitly.) See `WRITEUP.md`'s "How org_id/role
   actually get into the JWT" section for why. A production version of this
-  app would wrap all three in one Action (e.g. `inviteToOrg`).
+  app would wrap both in one Action (e.g. `inviteToOrg`).
 - **One org per user assumed.** The JWT's `org-id`/`default-role` custom
   claims resolve off a single (`orgMembership`) relationship row. A user in
   two orgs would get a non-deterministic org-id/role in their token — not

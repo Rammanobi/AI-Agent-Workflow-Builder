@@ -68,18 +68,18 @@ together, none of which is optional:
    in the JWT as `x-hasura-org-id` / `x-hasura-default-role` /
    `x-hasura-allowed-roles` — the exact session variables Layer 1's row
    permissions filter on.
-3. **Per-user role registration**, which is a separate mechanism from (2) and
-   easy to miss: `default-role`/`allowed-roles` are *reserved* Hasura claim
-   names, and nhost only honors them if the role also exists in
-   `auth.roles` (project-wide valid role list, seeded by adding
-   `owner`/`editor`/`viewer` to `[auth.user.roles].allowed` in the same
-   config) **and** the specific user has a matching row in `auth.user_roles`,
-   plus `auth.users.default_role` set to that role. Custom claims alone do
-   *not* override these — they're additive metadata, not a role-assignment
-   mechanism. In this project that third step is done by hand via SQL
-   (`update auth.users set default_role = ...`, `insert into
-   auth.user_roles ...`) whenever a user is added to `org_members`, since
-   there's no self-serve onboarding UI yet (see README's "Known limitations").
+3. **Project-wide allowed roles**, seeded once by adding `owner`/`editor`/
+   `viewer` to `[auth.user.roles].allowed` in the same nhost config —
+   `default-role`/`allowed-roles` are *reserved* Hasura claim names, and
+   nhost only honors a resolved value if it's also in this allowed-roles
+   list. Doing this once, project-wide, has a side effect worth knowing:
+   nhost automatically grants **every** allowed role (`user`, `me`, `owner`,
+   `editor`, `viewer`) to **every** signup in `auth.user_roles` — there is no
+   per-user role-grant step. The only per-user step actually needed is
+   setting `auth.users.default_role` to match their `org_members.role`
+   (`update auth.users set default_role = 'owner' where id = ...`), done by
+   hand via SQL whenever a user is added to `org_members`, since there's no
+   self-serve onboarding UI yet (see README's "Known limitations").
 
 One caveat worth flagging: `orgMembership` is an *object* relationship, so if
 a user is ever added to a second organization, which `org_members` row it
